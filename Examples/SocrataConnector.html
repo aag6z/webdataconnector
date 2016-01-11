@@ -1,21 +1,12 @@
 <html>
 <head>
 <title>Socrata Connector</title>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" type="text/javascript"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" type="text/javascript"></script>
 <script src="https://public.tableau.com/javascripts/api/tableauwdc-1.1.0.js" type="text/javascript"></script>
 <script type="text/javascript">
  
 (function() {
   var myConnector = tableau.makeConnector();
-
-  // the location property has lat/long. Put those properties on the base object to flatten the structure.
-  function expandLocation(obj) {
-    if (obj.location) {
-      obj.location_latitude = obj.location.latitude;
-      obj.location_longitude = obj.location.longitude;
-      delete obj.location;
-    }
-  };
 
   myConnector.init = function () {
     myConnector._recordsFetched = 0;
@@ -23,17 +14,26 @@
     tableau.initCallback();
   };
 
+  // the location property has lat/long. Put those properties on the base object to flatten the structure.
+  function expandLocation(obj) {
+    if (obj.geolocation) {
+      obj.location_latitude = obj.geolocation.latitude;
+      obj.location_longitude = obj.geolocation.longitude;
+      delete obj.geolocation;
+    }
+  };
+
   myConnector.getColumnHeaders = function() {
     var connectionData = JSON.parse(tableau.connectionData);
-    var connectionUrl = connectionData.url + '?%24limit=1';
+    var connectionUrl = connectionData.url + '&%24limit=1';
 
     $.ajax({
       url: connectionUrl,
       dataType: 'json',
       success: function (res, status, xhr) {
 
-        var fieldNames = xhr.getResponseHeader("X-SODA2-Fields");
-        var fieldTypes = xhr.getResponseHeader("X-SODA2-Types");
+        var fieldNames = xhr.getResponseHeader("X-Soda2-Fields");
+        var fieldTypes = xhr.getResponseHeader("X-Soda2-Types");
 
         if (!fieldNames) {
           fieldNames = [];
@@ -64,7 +64,7 @@
   myConnector.getTableData = function (lastRecordToken) {
     var connectionData = JSON.parse(tableau.connectionData);
     lastRecordNumber = parseInt(lastRecordToken || -1);
-    var connectionUrl = connectionData.url + '?%24limit=100&$offset=' + lastRecordToken;
+    var connectionUrl = connectionData.url + '&%24limit=1000&$offset=' + lastRecordToken;
 
     var xhr = $.ajax({
       url: connectionUrl,
@@ -115,10 +115,7 @@ $(document).ready(function () {
 <body>
 Select a data source: 
 <br>
-
-<label><input type="radio" name="dataSourceName" value="data.seattle.gov/resource/3k2p-39jp.json">Seattle 911 calls</label>
-<br>
-<label><input type="radio" name="dataSourceName" value="data.seattle.gov/resource/mags-97de.json">Seattle Building Permits</label>
+<label><input type="radio" name="dataSourceName" value="chronicdata.cdc.gov/resource/dttw-5yxu.json?class=Health Status" checked>CDC</label>
 <br>
 Max number of records to fetch: <input type="text" name="maxRecords" style="width: 50px;" />
 <br>
